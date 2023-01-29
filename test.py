@@ -52,9 +52,7 @@ sentences = ["VADER is smart, handsome, and funny.", # positive sentence example
     "Today SUX!",    #  negative slang with capitalization emphasis
     "Today kinda sux! But I'll get by, lol" # mixed sentiment example with slang and constrastive conjunction "but"
     ]
-paragraph = "It was one of the worst movies I've seen, despite good reviews. \
-Unbelievably bad acting!! Poor direction. VERY poor production. \
-The movie was bad. Very bad movie. VERY bad movie. VERY BAD movie. VERY BAD movie!"
+paragraph = "Shout out to WSB, if I didn't see everyone mentioning TSLA puts I wouldn't have known to buy calls"
 
 import nltk
 from nltk import tokenize

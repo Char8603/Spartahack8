@@ -3,6 +3,9 @@ import requests
 from requests.auth import HTTPBasicAuth
 import pandas
 from datetime import datetime
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+import nltk
+from nltk import tokenize
 
 def initialize_connection():
     auth = HTTPBasicAuth("tIYdIWoHf7b4oA_Y7h8cEA", "PYqCErcIFK4i8OA0deIYCnklSUB86g")
@@ -28,11 +31,11 @@ def retreive_posts(headers, params={'limit': '100'}):
 
     return request.json()
 
-def retreive_many_posts(headers, params={'limit': '100'}):
+def retreive_many_posts(headers, stock, params={'limit': '100'}):
     dataframe = pandas.DataFrame()
 
     for i in range(10):
-        result = requests.get("https://oauth.reddit.com/r/wallstreetbets/new",
+        result = requests.get("https://oauth.reddit.com/r/wallstreetbets/search/?q=" + stock + "&restrict_sr=1&sr_nsfw=&sort=new",
                                 headers=headers,
                                 params=params)
         
@@ -69,10 +72,65 @@ def format_data(posts):
     #print(dataframe)
     return dataframe
 
+def get_posts_from_day(data):
+    results = []
+    day = data.iloc[0]["created_utc"][0:10]
+
+    for post in data.iloc:
+        #if post["created_utc"][0:10] == day:
+        #print(post["created_utc"][0:10])
+        results.append(post)
+    return results
+
+def get_sentiment_scores(data):
+    scores = []
+
+    upvotes = 0
+
+    for post in data:
+        upvotes += int(post["ups"])
+        sentences = [post["title"] + post["selftext"]]
+
+        values = []
+
+        for sentence in sentences:
+            sid = SentimentIntensityAnalyzer()
+            #print(sentence)
+            ss = sid.polarity_scores(sentence)
+            for k in sorted(ss):
+                #print('{0}: {1}, '.format(k, ss[k]), end='')
+                values.append(float(ss[k]))
+            #print()
+        values.append(int(post["ups"]))
+        values.append(float(post["upvote_ratio"]))
+        scores.append(values)
+
+    return (scores, upvotes)     
+
+def process_scores(scores, upvotes):
+    results = [0, 0, 0]
+    for score in scores:
+        up_ratio = score[4] / upvotes
+        results[0] += up_ratio * score[1] * score[-1]
+        results[1] += up_ratio * score[2] * score[-1]
+        results[2] += up_ratio * score[3] * score[-1]
+    return results
+
+
 if __name__ == "__main__":
+    stock = "GME"
     headers = initialize_connection()
-    posts = retreive_posts(headers)
+    #posts = retreive_posts(headers)
     #display_titles(posts)  
     #data = format_data(posts)
-    data = retreive_many_posts(headers)
-    print(len(data))
+    data = retreive_many_posts(headers, stock)
+    posts = get_posts_from_day(data)
+    scores, upvotes = get_sentiment_scores(posts)
+    results = process_scores(scores, upvotes)
+    sum_res = sum(results)
+    for i in range(len(results)):
+        results[i] = results[i] / sum_res * 100
+
+    print(results)
+    
+    
